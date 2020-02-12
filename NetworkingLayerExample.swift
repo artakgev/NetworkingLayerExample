@@ -277,7 +277,10 @@ struct FontModel: Codable {
 }
 
 /**
-	
+GenericDecoder and GenericJSONDecoder
+This is generic class to automatically check is response contains
+necessary fields or no. 
+It's cool that this class can be used for any Codable class to check response
 */
 open class GenericDecoder<IN, OUT: Codable> {
     public class func decode(_ inObject: IN, completion: @escaping((OUT?, String) -> ())) {
@@ -286,16 +289,13 @@ open class GenericDecoder<IN, OUT: Codable> {
 }
 
  class GenericJSONDecoder<IN, OUT: Codable> : GenericDecoder<IN, OUT> {
-    public override class func decode(_ inObject: IN, completion: @escaping((OUT?
-        , String) -> ())) {
+    public override class func decode(_ inObject: IN, completion: @escaping((OUT?, String) -> ())) {
         do {
             let jsonDecoder = JSONDecoder()
 			if let safeInObject = inObject as? Data {
 				let response = try jsonDecoder.decode(OUT.self, from: safeInObject)
 				completion(response, "")
-			} else {
-				completion(nil, "Input object is nil")
-			}
+			} else { completion(nil, "Input object is nil") }
         } catch DecodingError.dataCorrupted(let context) {
             print(context.debugDescription)
             completion(nil, context.debugDescription)
@@ -317,71 +317,54 @@ open class GenericDecoder<IN, OUT: Codable> {
         }
     }
 }
+
+/**
+*/
 enum Router: URLRequestConvertible {
     case get(url: URL, headerParams: [String : Any])
     case post(url: URL, bodyParams: [String: Any], headerParams: [String : Any])
-	case patch(url: URL, bodyParams: [String: Any], headerParams: [String : Any])
-	case delete(url: URL, bodyParams: [String: Any], headerParams: [String : Any])
+    case patch(url: URL, bodyParams: [String: Any], headerParams: [String : Any])
+    case delete(url: URL, bodyParams: [String: Any], headerParams: [String : Any])
     
     func asURLRequest() throws -> URLRequest {
-        
         let bodyParams: ([String: Any]?) = {
             switch self {
-			case .get:
-				return nil
-            case .post(_, let bodyParams, _):
-                return (bodyParams)
-			case .patch(_, let bodyParams, _):
-				return (bodyParams)
-			case .delete(_, let bodyParams, _):
-				return (bodyParams)
-			}
+		case .get: return nil
+            	case .post(_, let bodyParams, _): return (bodyParams)
+	    	case .patch(_, let bodyParams, _): return (bodyParams)
+		case .delete(_, let bodyParams, _): return (bodyParams)
+	    }
         }()
-        
         let headerParams: ([String: Any]?) = {
             switch self {
-			case .get(_, let headerParams):
-				return (headerParams)
-            case .post(_, _, let headerParams):
-                return (headerParams)
-			case .patch(_, _, let headerParams):
-				return (headerParams)
-			case .delete(_, _, let headerParams):
-				return (headerParams)
-			}
+		case .get(_, let headerParams): return (headerParams)
+            	case .post(_, _, let headerParams): return (headerParams)
+		case .patch(_, _, let headerParams): return (headerParams)
+		case .delete(_, _, let headerParams): return (headerParams)
+	    }
         }()
-
         let url: URL = {
             switch self {
-            case .get(let url, _):
-                return (url)
-            case .post(let url, _, _):
-                return (url)
-			case .patch(let url, _, _):
-				return (url)
-			case .delete(let url, _, _):
-				return (url)
-			}
+            case .get(let url, _): return (url)
+            case .post(let url, _, _): return (url)
+	    case .patch(let url, _, _): return (url)
+	    case .delete(let url, _, _): return (url)
+	}
         }()
         
         let method: String = {
             switch self {
-            case .get:
-                return "GET"
-            case .post:
-                return "POST"
-			case .patch:
-				return "PATCH"
-			case .delete:
-				return "DELETE"
-			}
+            case .get: return "GET"
+            case .post: return "POST"
+	    case .patch: return "PATCH"
+	    case .delete: return "DELETE"
+	}
         }()
         
         var urlRequest = URLRequest(url: url)
         urlRequest.httpMethod = method
         for headerParam in headerParams! {
-            urlRequest.setValue(headerParam.value as? String,
-								forHTTPHeaderField: headerParam.key)
+            urlRequest.setValue(headerParam.value as? String, forHTTPHeaderField: headerParam.key)
         }
         let encoding = JSONEncoding.default
         return try encoding.encode(urlRequest, with: bodyParams)
