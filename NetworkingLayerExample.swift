@@ -5,35 +5,64 @@
 //  Created by Artak Gevorgyan on 20/11/18.
 //
 
+/**
+For API calls it's using Alomafire 3rd party framework
+Class FontsService responsible to fetch fonts via API
+Usage:
+FontsService().performFontsRequest(objectId: 45,
+				success: { (result) in
+				// Success, find fetched fonts in result												
+			}) { (error) in
+			  print(error.message)
+			}
 
+*/
 class FontsService {
 	
+	// NetworkRequest type object to make API request
 	var networkRequest: NetworkRequest!
 	
 	init() {
 		self.networkRequest = NetworkRequest()
 	}
 	
-	func performFontsRequest(templateId: Int,
-							 	success: @escaping((Bool, [FontModel]) -> ()),
-								 failure: ((RequestError) -> ())?) {
-		let url = API.createURL(endPoint: .fonts, params: ["templateId" : templateId])
+	/**
+	Parameters:
+	objectId - Int type identifier, for which should be fetched fonts
+	success - Block to notify about success fetching, returns collection of FontModel object,
+	FontModel object represents Font
+	failure - optional, not mandatory Block to notify about fetching fail. 
+	 Returns RequestError object which represents Error
+	*/
+	func performFontsRequest(objectId: Int,
+				 success: @escaping(([FontModel]) -> ()),
+				 failure: ((RequestError) -> ())?) {
+		// Create url object by using API structure, createURL method receives endPoint (in this case 'font') 
+		// and parameter objectId which will be used as a parameter in GET request
+		let url = API.createURL(endPoint: .fonts, params: ["objectId" : objectId])
+		// Create header parameters for request, in this case "Authorization" : "Bearer " + <token_value> 
 		let headerParams = API.createHeaderParameters(endPoint: .fonts)
-		self.networkRequest.request(method: "GET",
-									with: url,
-									bodyParameters: [:],
-									headerParameters: headerParams,
-									success: { (isSuccess, response) in
-										GenericJSONDecoder<Data?, FontsResponse>.decode(response, completion: { (reponseData, errorString) in
-											guard let fontsResponseObject = reponseData else {
-												return
-											}
-											let fonts = fontsResponseObject.data
-											success(isSuccess, fonts)
-										})
-		}) { (error) in
-			failure?(error)
-		}
+		// So, GET request should be like this
+		// https://productionhost.company.com/api/v1/fonts?objectId=45 with Bearer token type Authorization
+		
+		// Calling NetworkRequest's request function with GET method, url, headerParamaters (bodyParams in our case are empty)
+		// success Block with response (FontResponse type object)
+		self.networkRequest.request(method: "GET", 
+					    with: url,
+					    bodyParameters: [:],
+					    headerParameters: headerParams,
+					    success: { (response) in
+						      // Here we should be sure that response is decodable, i.e.
+						      // contains all necessary fields which are described in 
+						      // FontsResponse class
+						      GenericJSONDecoder<Data?, FontsResponse>.decode(response, completion: { (reponseData, errorString) in
+								guard let fontsResponseObject = reponseData else { return }
+								let fonts = fontsResponseObject.data
+								success(fonts)
+							})
+					   }) { (error) in
+					       failure?(error)
+		}	
 	}
 }
 
@@ -186,6 +215,9 @@ struct FontModel: Codable {
 
 }
 
+/**
+	
+*/
 open class GenericDecoder<IN, OUT: Codable> {
     public class func decode(_ inObject: IN, completion: @escaping((OUT?, String) -> ())) {
         fatalError("This method is empty please implement it on a subclass")
