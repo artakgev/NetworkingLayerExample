@@ -319,6 +319,7 @@ open class GenericDecoder<IN, OUT: Codable> {
 }
 
 /**
+Router enum to represent URLRequestConvertible
 */
 enum Router: URLRequestConvertible {
     case get(url: URL, headerParams: [String : Any])
